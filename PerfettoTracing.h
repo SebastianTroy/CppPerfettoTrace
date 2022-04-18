@@ -120,12 +120,7 @@ public:
 private:
     // Make sure cached events are flushed to file when the program exits
     struct FlushOnExit {
-        ~FlushOnExit()
-        {
-            if (IsTracing()) {
-                WriteToFile(traceWindows_.front().name, false);
-            }
-        }
+        ~FlushOnExit();
     };
 
     static inline std::string traceDirectory_ = std::filesystem::current_path().string();

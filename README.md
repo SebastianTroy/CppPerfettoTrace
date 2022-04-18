@@ -1,5 +1,7 @@
 # CppPerfettoTrace
- A lightweight utility to easily create Perfetto compatible traces of C++ code.
+A lightweight library to easily create Perfetto compatible traces of C++ code.
+
+See https://ui.perfetto.dev/ for further information and to view the trace files output by this library.
 
 Usage
 -----
@@ -26,7 +28,14 @@ include_directories(
 
 ```` CMAKE
 # Then in your CMakeLists.txt add
-include(CppPerfettoTrace.cmake)
+include(FetchContent)
+include(CppPerfettoTrace)
+
+target_link_libraries(<InsertApplicationNameHere>
+    PRIVATE
+    CppPerfettoTrace
+)
+
 # And optionally add the following to enable tracing, there is no runtime overhead to leaving trace macros in your code when this is not defined
 add_compile_definitions(ENABLE_PERFETTO_TRACE)
 
@@ -37,10 +46,13 @@ The API
 ```` C++
 // Intended to be placed at the beginning of each function you wish to trace, it automatically detects the functions name
 #define TRACE_FUNC()
+
 // Intended to be placed at the beginning of each lambda definition you wish to trace, (TRACE_FUNC could be used instead, but the deduced function name can be very messy)
 #define TRACE_LAMBDA(name)
+
 // Allows for finer detail to be collected on the content of a function, can be placed in if, else if, else, empty scopes e.t.c.
 #define TRACE_SCOPE(name)
+
 // Used to initiate the collection of events. As the size of the output files can rapidly get very large it is often important to narrow down the trace to a more manageble size.
 // name - The name of the file that will be generated containing the event data
 // eventCount - The maximum number of events to store in a window
@@ -114,3 +126,5 @@ TODO
  - [ ] Multi-threaded example
  - [ ] Implement the ability to add more than just a stack trace (e.g. Graphing variable values in tandem with the stack trace could be useful)
  - [ ] More flexibility for event window creation & early finishing
+ - [ ] Add to website and link to website in README
+ - [ ] Capture an image of the output when viewed in perfetto and place it in README and on website to make it look flashier

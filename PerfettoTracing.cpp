@@ -72,23 +72,26 @@ PerfettoTracing::StackTracer::~StackTracer()
 
 std::optional<PerfettoTracing::StackTracer> PerfettoTracing::StackTracer::Function(std::optional<std::map<std::string, std::string> > args, const std::experimental::source_location location)
 {
+    // TODO use fmt to format the thread ID
     std::stringstream idStr;
     idStr << std::this_thread::get_id();
-    return StackTracer(location.function_name(), fmt::format("{}:{}", location.file_name(), location.line()), fmt::format("Thread: {}", idStr.str()), args);
+    return StackTracer(location.function_name(), fmt::format("{}:{}", location.file_name(), location.line()), fmt::format("{}", idStr.str()), args);
 }
 
 std::optional<PerfettoTracing::StackTracer> PerfettoTracing::StackTracer::Lambda(const std::string& name, std::optional<std::map<std::string, std::string> > args, const std::experimental::source_location location)
 {
+    // TODO use fmt to format the thread ID
     std::stringstream idStr;
     idStr << std::this_thread::get_id();
-    return StackTracer(fmt::format("λ::{}", name), fmt::format("{}:{}", location.file_name(), location.line()), fmt::format("Thread: {}", idStr.str()), args);
+    return StackTracer(fmt::format("λ::{}", name), fmt::format("{}:{}", location.file_name(), location.line()), fmt::format("{}", idStr.str()), args);
 }
 
 std::optional<PerfettoTracing::StackTracer> PerfettoTracing::StackTracer::Scope(const std::string& name, std::optional<std::map<std::string, std::string> > args, const std::experimental::source_location location)
 {
+    // TODO use fmt to format the thread ID
     std::stringstream idStr;
     idStr << std::this_thread::get_id();
-    return StackTracer(fmt::format("scope::{}", name), fmt::format("{}:{}", location.file_name(), location.line()), fmt::format("Thread: {}", idStr.str()), args);
+    return StackTracer(fmt::format("scope::{}", name), fmt::format("{}:{}", location.file_name(), location.line()), fmt::format("{}", idStr.str()), args);
 }
 
 PerfettoTracing::StackTracer::StackTracer(std::string name, std::string sourceLocation, std::string thread, std::optional<std::map<std::string, std::string> > args)
@@ -127,4 +130,11 @@ void PerfettoTracing::WriteToFile(std::string fileName, bool append)
 
     events_.clear();
     std::cout << fmt::format("Trace file {}: {}", append ? "added to" : "created", traceDirectory_ + fileName + ".trace") << std::endl;
+}
+
+PerfettoTracing::FlushOnExit::~FlushOnExit()
+{
+    if (IsTracing()) {
+        WriteToFile(traceWindows_.front().name, false);
+    }
 }
