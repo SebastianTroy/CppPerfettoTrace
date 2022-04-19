@@ -4,36 +4,40 @@
 #include <iostream>
 #include <thread>
 
-void SomeFunc()
+void Iterate(unsigned repeats)
 {
     TRACE_FUNC()
 
-    auto print = [](int i)
-    {
-        TRACE_LAMBDA("print")
-        std::cout << "Loop Index: " << i << std::endl;
-    };
-
-    for (int i = 0; i < 10; ++i) {
-        print(i);
+    for (unsigned i = 0; i < repeats; ++i) {
+        TRACE_SCOPE(std::to_string(i))
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000 / repeats));
     }
 }
 
-void Threaded()
+void Recurse(unsigned repeats, unsigned depth)
 {
     TRACE_FUNC()
-    for (int i = 0; i < 10; ++i) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000 / repeats));
+    if (depth > 0) {
+        Recurse(repeats, depth - 1);
+    }
+}
+
+void Threaded(unsigned repeats)
+{
+    TRACE_FUNC()
+    for (unsigned i = 0; i < repeats; ++i) {
         std::jthread thr{[]()
                          {
-                             TRACE_LAMBDA("sleep 50 micro seconds")
-                             std::this_thread::sleep_for(std::chrono::microseconds(50));
-                             std::cout << "Thread ID: " << std::this_thread::get_id() << std::endl;
+                             TRACE_LAMBDA("threadRun")
+                             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
                          }};
         thr.detach();
     }
+    std::this_thread::sleep_for(std::chrono::milliseconds(1010));
 }
 
-int main(int argc, char** argv)
+int main(int /*argc*/, char** /*argv*/)
 {
     size_t numberOfEventsToLog = 100;
     auto startOfTrace = std::chrono::steady_clock::now();
@@ -42,6 +46,8 @@ int main(int argc, char** argv)
     // Most basic usage is to place this macro at the top of each function call you wish to trace
     TRACE_FUNC()
 
-    SomeFunc();
-    Threaded();
+    unsigned repeats = 4;
+    Iterate(repeats);
+    Recurse(repeats, repeats);
+    Threaded(repeats);
 }
