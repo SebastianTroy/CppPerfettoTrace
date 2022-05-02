@@ -6,6 +6,22 @@
 #include <sstream>
 #include <thread>
 #include <iostream>
+#include <thread>
+
+PerfettoTracing::StackTracer PerfettoTracing::TraceFunction(std::optional<std::map<std::string, std::string> > args, const std::experimental::source_location location)
+{
+    return CreateStackTracer(location.function_name(), args, location);
+}
+
+PerfettoTracing::StackTracer PerfettoTracing::TraceLambda(const std::string& name, std::optional<std::map<std::string, std::string> > args, const std::experimental::source_location location)
+{
+    return CreateStackTracer(fmt::format("λ::{}", name), args, location);
+}
+
+PerfettoTracing::StackTracer PerfettoTracing::TraceScope(const std::string& name, std::optional<std::map<std::string, std::string> > args, const std::experimental::source_location location)
+{
+    return CreateStackTracer(fmt::format("scope::{}", name), args, location);
+}
 
 void PerfettoTracing::AddTraceWindow(std::string name, size_t eventCount, std::chrono::steady_clock::time_point traceStart)
 {
@@ -31,9 +47,14 @@ void PerfettoTracing::AddEvent(PerfettoTracing::Event&& event)
     }
 }
 
-void PerfettoTracing::AddEvent(std::string name, std::string sourceLocation, PerfettoTracing::EventType type, std::chrono::steady_clock::time_point timeStamp, std::string traceSection, std::string traceSubSection, std::optional<std::map<std::string, std::string>> args)
+void PerfettoTracing::AddEvent(std::string name, std::string sourceLocation, EventType type, std::chrono::steady_clock::time_point timeStamp, size_t process, std::thread::id threadId, std::optional<std::string> id, std::optional<std::map<std::string, std::string>> args)
 {
-    AddEvent(Event{ name, sourceLocation, type, timeStamp, std::nullopt, traceSection, traceSubSection, std::move(args) });
+    AddEvent(Event{ name, sourceLocation, type, timeStamp, std::nullopt, process, threadId, std::move(id), std::move(args) });
+}
+
+PerfettoTracing::StackTracer PerfettoTracing::CreateStackTracer(const std::string& name, std::optional<std::map<std::string, std::string> > args, const std::experimental::source_location& location)
+{
+    return StackTracer(name, fmt::format("{}:{}", location.file_name(), location.line()), std::this_thread::get_id(), args);
 }
 
 std::string PerfettoTracing::ToString(const std::map<std::string, std::string>& pairs)
@@ -42,7 +63,7 @@ std::string PerfettoTracing::ToString(const std::map<std::string, std::string>& 
 
     ostr << "{ ";
     for (auto& [ key, value ] : pairs) {
-        ostr << fmt::format(R"({{ "{}": "{}" }})", key, value);
+        ostr << fmt::format(R"("{}": "{}")", key, value);
     }
     ostr << " }";
 
@@ -54,57 +75,29 @@ bool PerfettoTracing::IsTracing()
     return !traceWindows_.empty() && std::chrono::steady_clock::now() >= traceWindows_.front().startTime;
 }
 
-PerfettoTracing::StackTracer::StackTracer(PerfettoTracing::StackTracer&& other)
-    : name_(std::move(other.name_))
-    , sourceLocation_(std::move(other.sourceLocation_))
-    , thread_(std::move(other.thread_))
-    , args_(std::move(other.args_))
-{
-    other.traceOnExit_ = false;
-}
-
-PerfettoTracing::StackTracer::~StackTracer()
-{
-    if (traceOnExit_) {
-        AddEvent(name_, sourceLocation_, EventType::DurationEnd, std::chrono::steady_clock::now(), "Stack", thread_, args_);
-    }
-}
-
-std::optional<PerfettoTracing::StackTracer> PerfettoTracing::StackTracer::Function(std::optional<std::map<std::string, std::string> > args, const std::experimental::source_location location)
-{
-    // TODO use fmt to format the thread ID
-    std::stringstream idStr;
-    idStr << std::this_thread::get_id();
-    return StackTracer(location.function_name(), fmt::format("{}:{}", location.file_name(), location.line()), fmt::format("{}", idStr.str()), args);
-}
-
-std::optional<PerfettoTracing::StackTracer> PerfettoTracing::StackTracer::Lambda(const std::string& name, std::optional<std::map<std::string, std::string> > args, const std::experimental::source_location location)
-{
-    // TODO use fmt to format the thread ID
-    std::stringstream idStr;
-    idStr << std::this_thread::get_id();
-    return StackTracer(fmt::format("λ::{}", name), fmt::format("{}:{}", location.file_name(), location.line()), fmt::format("{}", idStr.str()), args);
-}
-
-std::optional<PerfettoTracing::StackTracer> PerfettoTracing::StackTracer::Scope(const std::string& name, std::optional<std::map<std::string, std::string> > args, const std::experimental::source_location location)
-{
-    // TODO use fmt to format the thread ID
-    std::stringstream idStr;
-    idStr << std::this_thread::get_id();
-    return StackTracer(fmt::format("scope::{}", name), fmt::format("{}:{}", location.file_name(), location.line()), fmt::format("{}", idStr.str()), args);
-}
-
-PerfettoTracing::StackTracer::StackTracer(std::string name, std::string sourceLocation, std::string thread, std::optional<std::map<std::string, std::string> > args)
+PerfettoTracing::StackTracer::StackTracer(std::string name, std::string sourceLocation, std::thread::id thread, std::optional<std::map<std::string, std::string> > args)
     : name_(name)
     , sourceLocation_(sourceLocation)
     , thread_(thread)
     , args_(args)
 {
-    AddEvent(name, sourceLocation, EventType::DurationBegin, std::chrono::steady_clock::now(), "Stack", thread, args);
+    AddEvent(name, sourceLocation, EventType::DurationBegin, std::chrono::steady_clock::now(), 0, thread, std::nullopt, args);
+}
+
+PerfettoTracing::StackTracer::~StackTracer()
+{
+    AddEvent(name_, sourceLocation_, EventType::DurationEnd, std::chrono::steady_clock::now(), 0, thread_, std::nullopt, args_);
 }
 
 void PerfettoTracing::WriteToFile(std::string fileName, bool append)
 {
+    // Map the thread IDs to numbers starting at 0
+    std::unordered_map<std::thread::id, size_t> betterThreadIds;
+
+    // Map Object events to
+    // map<classname, >
+    // std::unordered_map<std::string, std::map<std::string, size_t>> betterObjectIds;
+
     std::ofstream fileWriter(std::filesystem::current_path().append(fileName + ".trace").string(), append ? std::ofstream::app : std::ofstream::trunc);
 
     // Start of file needs to include a begin array char and the first event is included to make subsequent events easier to add
@@ -116,16 +109,21 @@ void PerfettoTracing::WriteToFile(std::string fileName, bool append)
     }
 
     for (const Event& e : events_) {
-        fileWriter << fmt::format(R"(,{} {{ "name" : "{}", "cat" : "{}", "ph" : "{}", "ts" : {}, "pid" : "{}", "tid" : "{}"{}{} }})",
+        if (!betterThreadIds.contains(e.thread)) {
+            betterThreadIds.insert(std::make_pair(e.thread, betterThreadIds.size()));
+        }
+
+        fileWriter << fmt::format(R"(,{} {{ "name" : "{}", "cat" : "{}", "ph" : "{}", "ts" : {}, "pid" : {}, "tid" : {}{}{}{} }})",
                                   "\n",
                                   e.name,
                                   e.sourceLocation,
                                   static_cast<char>(e.type),
                                   std::chrono::duration_cast<std::chrono::microseconds>(e.timeStamp.time_since_epoch()).count(),
-                                  e.traceSection,
-                                  e.traceSubSection,
-                                  e.duration.has_value() ? fmt::format(R"(, "dur" : {})", std::chrono::duration_cast<std::chrono::microseconds>(e.duration.value()).count()) : "",
-                                  e.args.has_value() ? fmt::format(R"(, "args" : {})", ToString(e.args.value())) : "");
+                                  e.process,
+                                  betterThreadIds.at(e.thread),
+                                  e.id.has_value() ? e.id.value() : "",
+                                  e.duration.has_value() ? fmt::format(R"__(, "dur" : {})__", std::chrono::duration_cast<std::chrono::microseconds>(e.duration.value()).count()) : "",
+                                  e.args.has_value() ? fmt::format(R"__(, "args" : {})__", ToString(e.args.value())) : "");
     }
 
     events_.clear();
@@ -138,3 +136,45 @@ PerfettoTracing::FlushOnExit::~FlushOnExit()
         WriteToFile(traceWindows_.front().name, false);
     }
 }
+
+//PerfettoTracing::ObjectTracer::ObjectTracer(std::string&& classname, std::string&& constructor)
+//    : classname_(classname)
+//    , thread_(std::this_thread::get_id())
+//{
+//    AddEvent(classname_, constructor, EventType::ObjectCreated, std::chrono::steady_clock::now(), 0, thread_, fmt::format(R"__(, "id" : "{:#06x}")__", id));
+//}
+
+//PerfettoTracing::ObjectTracer::ObjectTracer(const ObjectTracer& other)
+//    : classname_(other.classname_)
+//    , thread_(std::this_thread::get_id())
+//{
+//    AddEvent(classname_, "copy constructed", EventType::ObjectCreated, std::chrono::steady_clock::now(), 0, thread_, fmt::format(R"__(, "id" : "{:#06x}")__", id));
+//}
+
+//PerfettoTracing::ObjectTracer::ObjectTracer(ObjectTracer&& other)
+//    : classname_(other.classname_)
+//    , thread_(std::this_thread::get_id())
+//{
+//    AddEvent(classname_, "move constructed", EventType::ObjectCreated, std::chrono::steady_clock::now(), 0, thread_, fmt::format(R"__(, "id" : "{:#06x}")__", id));
+//}
+
+//PerfettoTracing::ObjectTracer::~ObjectTracer()
+//{
+//    AddEvent(classname_, "destroyed", EventType::ObjectDestroyed, std::chrono::steady_clock::now(), 0, thread_, fmt::format(R"__(, "id" : "{:#06x}")__", id));
+//}
+
+//PerfettoTracing::ObjectTracer& PerfettoTracing::ObjectTracer::operator=(const ObjectTracer& other)
+//{
+//    classname_ = other.classname_;
+//    thread_ = std::this_thread::get_id();
+//    AddEvent(classname_, "copy assigned", EventType::ObjectCreated, std::chrono::steady_clock::now(), 0, thread_, fmt::format(R"__(, "id" : "{:#06x}")__", id));
+//    return *this;
+//}
+
+//PerfettoTracing::ObjectTracer& PerfettoTracing::ObjectTracer::operator=(ObjectTracer&& other)
+//{
+//    classname_ = other.classname_;
+//    thread_ = std::this_thread::get_id();
+//    AddEvent(other.classname_, "move assigned", EventType::ObjectCreated, std::chrono::steady_clock::now(), 0, thread_, fmt::format(R"__(, "id" : "{:#06x}")__", id));
+//    return *this;
+//}

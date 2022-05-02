@@ -107,46 +107,67 @@ Example Output
 --------------
 The following is produced when the example executable is built and run, this can be viewed at https://ui.perfetto.dev/ though you'll need to copy it into an otherwise empty file to view it.
 ```` json
-[ { "name" : "TraceStart", "ph" : "i", "ts" : 1987878044, "pid" : 0 },
- { "name" : "main", "cat" : "example/main.cpp:47", "ph" : "B", "ts" : 1984540556, "pid" : "Stack", "tid" : "1" },
- { "name" : "Iterate", "cat" : "example/main.cpp:9", "ph" : "B", "ts" : 1984540564, "pid" : "Stack", "tid" : "1" },
- { "name" : "scope::0", "cat" : "example/main.cpp:12", "ph" : "B", "ts" : 1984540570, "pid" : "Stack", "tid" : "1" },
- { "name" : "scope::0", "cat" : "example/main.cpp:12", "ph" : "E", "ts" : 1984797038, "pid" : "Stack", "tid" : "1" },
- { "name" : "scope::1", "cat" : "example/main.cpp:12", "ph" : "B", "ts" : 1984797072, "pid" : "Stack", "tid" : "1" },
- { "name" : "scope::1", "cat" : "example/main.cpp:12", "ph" : "E", "ts" : 1985050766, "pid" : "Stack", "tid" : "1" },
- { "name" : "scope::2", "cat" : "example/main.cpp:12", "ph" : "B", "ts" : 1985050787, "pid" : "Stack", "tid" : "1" },
- { "name" : "scope::2", "cat" : "example/main.cpp:12", "ph" : "E", "ts" : 1985315802, "pid" : "Stack", "tid" : "1" },
- { "name" : "scope::3", "cat" : "example/main.cpp:12", "ph" : "B", "ts" : 1985315833, "pid" : "Stack", "tid" : "1" },
- { "name" : "scope::3", "cat" : "example/main.cpp:12", "ph" : "E", "ts" : 1985566907, "pid" : "Stack", "tid" : "1" },
- { "name" : "Iterate", "cat" : "example/main.cpp:9", "ph" : "E", "ts" : 1985566918, "pid" : "Stack", "tid" : "1" },
- { "name" : "Recurse", "cat" : "example/main.cpp:19", "ph" : "B", "ts" : 1985566939, "pid" : "Stack", "tid" : "1" },
- { "name" : "Recurse", "cat" : "example/main.cpp:19", "ph" : "B", "ts" : 1985831827, "pid" : "Stack", "tid" : "1" },
- { "name" : "Recurse", "cat" : "example/main.cpp:19", "ph" : "B", "ts" : 1986083959, "pid" : "Stack", "tid" : "1" },
- { "name" : "Recurse", "cat" : "example/main.cpp:19", "ph" : "B", "ts" : 1986349223, "pid" : "Stack", "tid" : "1" },
- { "name" : "Recurse", "cat" : "example/main.cpp:19", "ph" : "B", "ts" : 1986602922, "pid" : "Stack", "tid" : "1" },
- { "name" : "Recurse", "cat" : "example/main.cpp:19", "ph" : "E", "ts" : 1986856829, "pid" : "Stack", "tid" : "1" },
- { "name" : "Recurse", "cat" : "example/main.cpp:19", "ph" : "E", "ts" : 1986856863, "pid" : "Stack", "tid" : "1" },
- { "name" : "Recurse", "cat" : "example/main.cpp:19", "ph" : "E", "ts" : 1986856864, "pid" : "Stack", "tid" : "1" },
- { "name" : "Recurse", "cat" : "example/main.cpp:19", "ph" : "E", "ts" : 1986856865, "pid" : "Stack", "tid" : "1" },
- { "name" : "Recurse", "cat" : "example/main.cpp:19", "ph" : "E", "ts" : 1986856867, "pid" : "Stack", "tid" : "1" },
- { "name" : "Threaded", "cat" : "example/main.cpp:28", "ph" : "B", "ts" : 1986856881, "pid" : "Stack", "tid" : "1" },
- { "name" : "λ::threadRun", "cat" : "example/main.cpp:32", "ph" : "B", "ts" : 1986857057, "pid" : "Stack", "tid" : "2" },
- { "name" : "λ::threadRun", "cat" : "example/main.cpp:32", "ph" : "B", "ts" : 1986857087, "pid" : "Stack", "tid" : "3" },
- { "name" : "λ::threadRun", "cat" : "example/main.cpp:32", "ph" : "B", "ts" : 1986857119, "pid" : "Stack", "tid" : "4" },
- { "name" : "λ::threadRun", "cat" : "example/main.cpp:32", "ph" : "B", "ts" : 1986857152, "pid" : "Stack", "tid" : "5" },
- { "name" : "λ::threadRun", "cat" : "example/main.cpp:32", "ph" : "E", "ts" : 1987861715, "pid" : "Stack", "tid" : "5" },
- { "name" : "λ::threadRun", "cat" : "example/main.cpp:32", "ph" : "E", "ts" : 1987861714, "pid" : "Stack", "tid" : "3" },
- { "name" : "λ::threadRun", "cat" : "example/main.cpp:32", "ph" : "E", "ts" : 1987861718, "pid" : "Stack", "tid" : "2" },
- { "name" : "Threaded", "cat" : "example/main.cpp:28", "ph" : "E", "ts" : 1987877471, "pid" : "Stack", "tid" : "1" },
- { "name" : "main", "cat" : "example/main.cpp:47", "ph" : "E", "ts" : 1987877486, "pid" : "Stack", "tid" : "1" }
-
+[ { "name" : "TraceStart", "ph" : "i", "ts" : 9925939514, "pid" : 0 },
+ { "name" : "main", "cat" : "example/main.cpp:62", "ph" : "B", "ts" : 9922655170, "pid" : 0, "tid" : 0 },
+ { "name" : "Iterate", "cat" : "example/main.cpp:13", "ph" : "B", "ts" : 9922655174, "pid" : 0, "tid" : 0 },
+ { "name" : "scope::0", "cat" : "example/main.cpp:16", "ph" : "B", "ts" : 9922655182, "pid" : 0, "tid" : 0 },
+ { "name" : "globalNum", "cat" : "example/main.cpp:19", "ph" : "C", "ts" : 9922910528, "pid" : 0, "tid" : 0, "args" : { "": "1" } },
+ { "name" : "scope::0", "cat" : "example/main.cpp:16", "ph" : "E", "ts" : 9922910546, "pid" : 0, "tid" : 0 },
+ { "name" : "scope::1", "cat" : "example/main.cpp:16", "ph" : "B", "ts" : 9922910556, "pid" : 0, "tid" : 0 },
+ { "name" : "globalNum", "cat" : "example/main.cpp:19", "ph" : "C", "ts" : 9923165188, "pid" : 0, "tid" : 0, "args" : { "": "2" } },
+ { "name" : "scope::1", "cat" : "example/main.cpp:16", "ph" : "E", "ts" : 9923165201, "pid" : 0, "tid" : 0 },
+ { "name" : "scope::2", "cat" : "example/main.cpp:16", "ph" : "B", "ts" : 9923165205, "pid" : 0, "tid" : 0 },
+ { "name" : "globalNum", "cat" : "example/main.cpp:19", "ph" : "C", "ts" : 9923418056, "pid" : 0, "tid" : 0, "args" : { "": "3" } },
+ { "name" : "scope::2", "cat" : "example/main.cpp:16", "ph" : "E", "ts" : 9923418069, "pid" : 0, "tid" : 0 },
+ { "name" : "scope::3", "cat" : "example/main.cpp:16", "ph" : "B", "ts" : 9923418074, "pid" : 0, "tid" : 0 },
+ { "name" : "globalNum", "cat" : "example/main.cpp:19", "ph" : "C", "ts" : 9923668063, "pid" : 0, "tid" : 0, "args" : { "": "4" } },
+ { "name" : "scope::3", "cat" : "example/main.cpp:16", "ph" : "E", "ts" : 9923668088, "pid" : 0, "tid" : 0 },
+ { "name" : "Iterate", "cat" : "example/main.cpp:13", "ph" : "E", "ts" : 9923668089, "pid" : 0, "tid" : 0 },
+ { "name" : "Recurse", "cat" : "example/main.cpp:25", "ph" : "B", "ts" : 9923668092, "pid" : 0, "tid" : 0 },
+ { "name" : "globalNum", "cat" : "example/main.cpp:29", "ph" : "C", "ts" : 9923920903, "pid" : 0, "tid" : 0, "args" : { "": "5" } },
+ { "name" : "Recurse", "cat" : "example/main.cpp:25", "ph" : "B", "ts" : 9923920941, "pid" : 0, "tid" : 0 },
+ { "name" : "globalNum", "cat" : "example/main.cpp:29", "ph" : "C", "ts" : 9924174667, "pid" : 0, "tid" : 0, "args" : { "": "6" } },
+ { "name" : "Recurse", "cat" : "example/main.cpp:25", "ph" : "B", "ts" : 9924174680, "pid" : 0, "tid" : 0 },
+ { "name" : "globalNum", "cat" : "example/main.cpp:29", "ph" : "C", "ts" : 9924430036, "pid" : 0, "tid" : 0, "args" : { "": "7" } },
+ { "name" : "Recurse", "cat" : "example/main.cpp:25", "ph" : "B", "ts" : 9924430050, "pid" : 0, "tid" : 0 },
+ { "name" : "globalNum", "cat" : "example/main.cpp:29", "ph" : "C", "ts" : 9924683032, "pid" : 0, "tid" : 0, "args" : { "": "8" } },
+ { "name" : "Recurse", "cat" : "example/main.cpp:25", "ph" : "B", "ts" : 9924683048, "pid" : 0, "tid" : 0 },
+ { "name" : "Recurse", "cat" : "example/main.cpp:25", "ph" : "E", "ts" : 9924938008, "pid" : 0, "tid" : 0 },
+ { "name" : "Recurse", "cat" : "example/main.cpp:25", "ph" : "E", "ts" : 9924938020, "pid" : 0, "tid" : 0 },
+ { "name" : "Recurse", "cat" : "example/main.cpp:25", "ph" : "E", "ts" : 9924938021, "pid" : 0, "tid" : 0 },
+ { "name" : "Recurse", "cat" : "example/main.cpp:25", "ph" : "E", "ts" : 9924938022, "pid" : 0, "tid" : 0 },
+ { "name" : "Recurse", "cat" : "example/main.cpp:25", "ph" : "E", "ts" : 9924938023, "pid" : 0, "tid" : 0 },
+ { "name" : "Threaded", "cat" : "example/main.cpp:36", "ph" : "B", "ts" : 9924938034, "pid" : 0, "tid" : 0 },
+ { "name" : "λ::threadRun", "cat" : "example/main.cpp:40", "ph" : "B", "ts" : 9924938214, "pid" : 0, "tid" : 1 },
+ { "name" : "λ::threadRun", "cat" : "example/main.cpp:40", "ph" : "B", "ts" : 9924938244, "pid" : 0, "tid" : 2 },
+ { "name" : "λ::threadRun", "cat" : "example/main.cpp:40", "ph" : "B", "ts" : 9924938291, "pid" : 0, "tid" : 3 },
+ { "name" : "λ::threadRun", "cat" : "example/main.cpp:40", "ph" : "B", "ts" : 9924938322, "pid" : 0, "tid" : 4 },
+ { "name" : "globalNum", "cat" : "example/main.cpp:43", "ph" : "C", "ts" : 9925178029, "pid" : 0, "tid" : 1, "args" : { "": "7" } },
+ { "name" : "λ::threadRun", "cat" : "example/main.cpp:40", "ph" : "E", "ts" : 9925178041, "pid" : 0, "tid" : 1 },
+ { "name" : "globalNum", "cat" : "example/main.cpp:43", "ph" : "C", "ts" : 9925401137, "pid" : 0, "tid" : 2, "args" : { "": "6" } },
+ { "name" : "λ::threadRun", "cat" : "example/main.cpp:40", "ph" : "E", "ts" : 9925401152, "pid" : 0, "tid" : 2 },
+ { "name" : "globalNum", "cat" : "example/main.cpp:43", "ph" : "C", "ts" : 9925622775, "pid" : 0, "tid" : 3, "args" : { "": "5" } },
+ { "name" : "λ::threadRun", "cat" : "example/main.cpp:40", "ph" : "E", "ts" : 9925622787, "pid" : 0, "tid" : 3 },
+ { "name" : "globalNum", "cat" : "example/main.cpp:43", "ph" : "C", "ts" : 9925844499, "pid" : 0, "tid" : 4, "args" : { "": "4" } },
+ { "name" : "λ::threadRun", "cat" : "example/main.cpp:40", "ph" : "E", "ts" : 9925844514, "pid" : 0, "tid" : 4 },
+ { "name" : "Threaded", "cat" : "example/main.cpp:36", "ph" : "E", "ts" : 9925938762, "pid" : 0, "tid" : 0 },
+ { "name" : "main", "cat" : "example/main.cpp:62", "ph" : "E", "ts" : 9925938773, "pid" : 0, "tid" : 0 }
 ````
-![Output from Example program analysed in Perfetto Trace](https://img1.wsimg.com/isteam/ip/961afd39-a6a6-4a34-aeab-9ebf830fefd8/MyApplicationTrace.trace.png)
+
+![Output from Example program analysed in Perfetto Trace](https://img1.wsimg.com/isteam/ip/961afd39-a6a6-4a34-aeab-9ebf830fefd8/MyApplicationTrace.png)
 
 TODO
 ----
  - [X] Multi-threaded example
  - [X] Add to website and link to website in README
  - [X] Capture an image of the output when viewed in perfetto and place it in README and on website to make it look flashier
- - [ ] Implement the ability to add more than just a stack trace (e.g. Graphing variable values in tandem with the stack trace could be useful)
+ - [X] Implement the ability to add more than just a stack trace (e.g. Graphing variable values in tandem with the stack trace could be useful)
  - [ ] More flexibility for event window creation & early finishing
+ - [X] BUG the map of user definable options doesn't work when using the function directly
+ - [ ] Complete overhaul
+ - - [ ] Keep track of a stack of "Tracers", the user can create one and it will begin and end in its scope RAII style
+ - - - A trace with a sub-trace in it would simply report the name of the subtrace for the duration the sub-trace was running
+ - - - The "Time window" approach from before would still be nice to keep, 
+ - - [ ] Add full compatibility for all event types
+ - - [ ] Use templates and concepts to replace the macros but keep the ability for compile-time removal of all tracing code
+ - - - Is this even possible? There is no guarantee that a function call will be optimised away even if the function is empty...

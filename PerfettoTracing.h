@@ -1,7 +1,10 @@
 #ifndef PERFETTOTRACING_H
 #define PERFETTOTRACING_H
 
+#include <fmt/core.h>
+
 #include <optional>
+#include <thread>
 #include <vector>
 #include <map>
 #include <chrono>
@@ -10,19 +13,23 @@
 #include <filesystem>
 
 #ifdef ENABLE_PERFETTO_TRACE
-#define TRACE_FUNC() auto tracer = PerfettoTracing::StackTracer::Function();
-#define TRACE_FUNC_ARGS(args) auto tracer = PerfettoTracing::StackTracer::Function(args);
-#define TRACE_LAMBDA(name) auto tracer = PerfettoTracing::StackTracer::Lambda(name);
-#define TRACE_LAMBDA_ARGS(name, args) auto tracer = PerfettoTracing::StackTracer::Lambda(name, args);
-#define TRACE_SCOPE(name) auto tracer = PerfettoTracing::StackTracer::Scope(name);
-#define TRACE_SCOPE_ARGS(name, args) auto tracer = PerfettoTracing::StackTracer::Scope(name, args);
+  #ifndef STRINGIFY
+    #define STRINGIFY(x) #x
+  #endif
+  #ifndef TOSTRING
+    #define TOSTRING(x) STRINGIFY(x)
+  #endif
+  #define TRACE_FUNC(...) auto tracer = PerfettoTracing::TraceFunction(__VA_ARGS__);
+  #define TRACE_LAMBDA(name, ...) auto tracer = PerfettoTracing::TraceLambda(name __VA_OPT__(,) __VA_ARGS__);
+  #define TRACE_SCOPE(name, ...) auto tracer = PerfettoTracing::TraceScope(name __VA_OPT__(,) __VA_ARGS__);
+  #define TRACE_VALUE(value) PerfettoTracing::TraceValue(STRINGIFY(value), value);
+//  #define TRACE_OBJECT(name) PerfettoTracing::ObjectTracer _tracer = PerfettoTracing::ObjectTracer(name);
 #else
-#define TRACE_FUNC()
-#define TRACE_FUNC_ARGS(args)
-#define TRACE_LAMBDA(name)
-#define TRACE_LAMBDA_ARGS(name, args)
-#define TRACE_SCOPE(name)
-#define TRACE_SCOPE_ARGS(name, args)
+  #define TRACE_FUNC()
+  #define TRACE_LAMBDA(name)
+  #define TRACE_SCOPE(name)
+  #define TRACE_VALUE(name, value)
+//  #define TRACE_OBJECT(name)
 #endif
 
 /**
@@ -43,12 +50,14 @@
 class PerfettoTracing {
 public:
     enum class EventType : char {
-        DurationBegin = 'B', // "Begin", follow with a matching 'E' event to create a DurationEvent
-        DurationEnd =   'E', // "End", should follow a matching 'B' event to create a DurationEvent
-        Duration =      'X', // "CompleteEvent", combines a B & E event in one entry
-        Instantaneous = 'i', // "Instantaneous" event, an event with no duration
-        Counter =       'C', // "Counter", used to track a value over time
-        // TODO Object events for tracing object lifetimes? tidy impl would involve polymorphism which would likely change optimisation behaviour in a a big way...
+        DurationBegin =   'B', // "Begin", follow with a matching 'E' event to create a DurationEvent
+        DurationEnd =     'E', // "End", should follow a matching 'B' event to create a DurationEvent
+        Duration =        'X', // "CompleteEvent", combines a B & E event in one entry
+        Instantaneous =   'i', // "Instantaneous" event, an event with no duration
+        Counter =         'C', // "Counter", used to track a value over time
+        ObjectCreated =   'N', // "Object Event", used to track creation of an object
+        ObjectSnapshot =  'O', // "Object Event", used to track an object when something happens
+        ObjectDestroyed = 'D', // "Object Event", used to track destruction of an object
     };
 
     enum class EventScope : char {
@@ -84,8 +93,9 @@ public:
         EventType type;
         std::chrono::steady_clock::time_point timeStamp;
         std::optional<std::chrono::steady_clock::duration> duration;
-        std::string traceSection;
-        std::string traceSubSection;
+        size_t process;
+        std::thread::id thread;
+        std::optional<std::string> id;
         std::optional<std::map<std::string, std::string>> args;
     };
 
@@ -97,25 +107,53 @@ public:
 
     class StackTracer {
     public:
-        StackTracer(StackTracer&& other);
+        StackTracer(std::string name, std::string sourceLocation, std::thread::id threadId, std::optional<std::map<std::string, std::string>> args);
+        StackTracer(const StackTracer& other) = delete;
+        StackTracer(StackTracer&& other) = delete;
         ~StackTracer();
 
-        static std::optional<StackTracer> Function(std::optional<std::map<std::string, std::string>> args = std::nullopt, const std::experimental::source_location location = std::experimental::source_location::current());
-        static std::optional<StackTracer> Lambda(const std::string& name, std::optional<std::map<std::string, std::string>> args = std::nullopt, const std::experimental::source_location location = std::experimental::source_location::current());
-        static std::optional<StackTracer> Scope(const std::string& name, std::optional<std::map<std::string, std::string>> args = std::nullopt, const std::experimental::source_location location = std::experimental::source_location::current());
+        StackTracer& operator=(const StackTracer& other) = delete;
+        StackTracer operator=(StackTracer&& other) = delete;
+
     private:
         std::string name_;
         std::string sourceLocation_;
-        std::string thread_;
+        std::thread::id  thread_;
         std::optional<std::map<std::string, std::string>> args_;
-        bool traceOnExit_ = true;
-
-        StackTracer(std::string name, std::string sourceLocation, std::string thread, std::optional<std::map<std::string, std::string>> args);
     };
+
+    // The idea here is to make this a member variable of any object and the following function definitions will document what happens to the object
+    // when writing the output, will need to use, a-sync events? put the same objects into the same process (not 0, that is reserved for the stack) and have as few rows as possible (i.e. num rows == max number of objects to exist in parallel at any time)
+//    class ObjectTracer {
+//    public:
+//        ObjectTracer(std::string&& classname, std::string&& constructor = "default");
+//        ObjectTracer(const ObjectTracer& other);
+//        ObjectTracer(ObjectTracer&& other);
+//        ~ObjectTracer();
+
+//        ObjectTracer& operator=(const ObjectTracer& other);
+//        ObjectTracer& operator=(ObjectTracer&& other);
+//    private:
+//        static inline size_t nextUniqueId = 0;
+
+//        std::string classname_;
+//        std::thread::id  thread_;
+//        size_t id = nextUniqueId++;
+//    };
+
+    [[ nodiscard ]] static StackTracer TraceFunction(std::optional<std::map<std::string, std::string>> args = std::nullopt, const std::experimental::source_location location = std::experimental::source_location::current());
+    [[ nodiscard ]] static StackTracer TraceLambda(const std::string& name, std::optional<std::map<std::string, std::string>> args = std::nullopt, const std::experimental::source_location location = std::experimental::source_location::current());
+    [[ nodiscard ]] static StackTracer TraceScope(const std::string& name, std::optional<std::map<std::string, std::string>> args = std::nullopt, const std::experimental::source_location location = std::experimental::source_location::current());
+
+    template <typename T> requires std::is_arithmetic_v<T>
+    static void TraceValue(const std::string& name, T value, const std::experimental::source_location location = std::experimental::source_location::current())
+    {
+        AddEvent(name, fmt::format("{}:{}", location.file_name(), location.line()), EventType::Counter, std::chrono::steady_clock::now(), 0, std::this_thread::get_id(), std::nullopt, std::map<std::string, std::string>{ {"", std::to_string(value)} });
+    }
 
     static void AddTraceWindow(std::string name, size_t eventCount, std::chrono::steady_clock::time_point traceStart);
     static void AddEvent(Event&& event);
-    static void AddEvent(std::string name, std::string sourceLocation, PerfettoTracing::EventType type, std::chrono::steady_clock::time_point timeStamp, std::string traceSection, std::string traceSubSection, std::optional<std::map<std::string, std::string>> args);
+    static void AddEvent(std::string name, std::string sourceLocation, PerfettoTracing::EventType type, std::chrono::steady_clock::time_point timeStamp, size_t process, std::thread::id threadId, std::optional<std::string> id = std::nullopt, std::optional<std::map<std::string, std::string>> args = std::nullopt);
 
 private:
     // Make sure cached events are flushed to file when the program exits
@@ -127,6 +165,8 @@ private:
     static inline std::vector<TraceWindow> traceWindows_ = {};
     static inline std::vector<Event> events_ = {};
     static inline FlushOnExit unfinishedWindowEventFlusher = {};
+
+    static StackTracer CreateStackTracer(const std::string& name, std::optional<std::map<std::string, std::string>> args, const std::experimental::source_location& location);
 
     static std::string ToString(const std::map<std::string, std::string>& pairs);
     static bool IsTracing();
