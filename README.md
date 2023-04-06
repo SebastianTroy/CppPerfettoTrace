@@ -5,7 +5,7 @@ Example output at the end of this file.
 
 See https://ui.perfetto.dev/ for further information and to view the trace files output by this library.
 
-See https://troydev.co.uk/cppperfettotrace for this, and more of my projects.
+See https://troydev.co.uk/cpp-perfetto-trace for this, and more of my projects.
 
 Disclaimer
 ----------
